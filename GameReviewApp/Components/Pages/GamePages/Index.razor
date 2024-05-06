@@ -1,0 +1,105 @@
+﻿@page "/games"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject GameReviewApp.Data.ApplicationDbContext DB
+@using GameReviewApp.Components.Game
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="games/create">Create New</a>
+</p>
+
+@if (games == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Genre</th>
+                <th>Rating</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var game in games)
+            {
+                <tr>
+                    <td>@game.Title</td>
+                    <td>@game.Genre</td>
+                    <td>@game.Rating</td>
+                    <td>
+                        <AuthorizeView>
+                            <Authorized>
+                                <a href="@($"games/edit?id={game.Id}")">Edit</a> |
+                            </Authorized>
+                        </AuthorizeView>
+                        
+                        <a href="@($"games/details?id={game.Id}")">Details</a>
+                        <AuthorizeView>
+                            <Authorized>
+                                | <a href="@($"games/delete?id={game.Id}")">Delete</a>
+                            </Authorized>
+                        </AuthorizeView>
+                        
+                    </td>
+                </tr>
+
+            }
+        </tbody>
+    </table>
+}
+<button type="button" class="btn btn-primary" @onclick="SortByTitle">Sort by title</button>
+<button type="button" class="btn btn-primary" @onclick="SortByRating">Sort by rating</button>
+
+@code {
+    List<Game> games = new List<Game>();
+    bool pressedtitle = false;
+    bool pressedrating = false;
+    protected override async Task OnInitializedAsync()
+    {
+        games = await DB.Game.ToListAsync();
+    }
+
+    private void SortByTitle()
+    {
+        if(pressedtitle)
+        {
+            games = games.OrderByDescending(g => g.Title).ToList();
+            pressedtitle = false;
+        }
+        else
+        {
+            games = games.OrderBy(g => g.Title).ToList();
+            pressedtitle = true;
+        }
+        
+    }
+
+    private void SortByRating()
+    {
+        if(pressedrating)
+        {
+            games = games.OrderBy(g => g.Rating).ToList();
+            pressedrating = false;
+        }
+        else
+        {
+            games = games.OrderByDescending(g => g.Rating).ToList();
+            pressedrating = true;
+        }
+
+    }
+}
+
+
+
+
+

@@ -1,0 +1,115 @@
+﻿@page "/games/details"
+@inject GameReviewApp.Data.ApplicationDbContext DB
+@using GameReviewApp.Components.Game
+@inject NavigationManager NavigationManager
+@using Microsoft.EntityFrameworkCore
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h4>Game</h4>
+    <hr />
+    @if (game is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <img src="@game.ImagePath" width="200px" height="200px"/>
+        <dl class="row">
+            <dt class="col-sm-2">Title</dt>
+            <dd class="col-sm-10">@game.Title</dd>
+            <dt class="col-sm-2">Description</dt>
+            <dd class="col-sm-10">@game.Description</dd>
+            <dt class="col-sm-2">ReleaseDate</dt>
+            <dd class="col-sm-10">@game.ReleaseDate.DayOfWeek</dd>
+            <dt class="col-sm-2">Genre</dt>
+            <dd class="col-sm-10">@game.Genre</dd>
+            <dt class="col-sm-2">Rating</dt>
+            <dd class="col-sm-10">@game.Rating</dd>
+
+        </dl>
+        <div>
+            <a href="@($"/games/edit?id={game.Id}")">Edit</a> |
+            <a href="@($"/games")">Back to List</a>
+        </div>
+    }
+</div>
+
+<AuthorizeView>
+    <Authorized>
+        <input type="number" style="width=70px"
+               @bind="review"
+               step="1"
+               min="0"
+               max="5" class="form-control" @oninput="Input" placeholder="Rate game" />
+
+        <button type="button" class="btn btn-primary" @onclick="SubmitReview">Submit review</button>
+        <div>
+            @review
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    Game? game;
+    int? review;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        game = await DB.Game.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (game is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    private void Input(ChangeEventArgs e)
+    {
+        try
+        {
+            review = Int32.Parse(e.Value?.ToString());
+        }
+        catch (Exception)
+        {
+            review = null;
+        }
+
+        if(review>5)
+        {
+            review = 5;
+        }
+        else if (review < 0)
+        {
+            review = 0;
+        }
+
+    }
+    private void SubmitReview()
+    {
+        if (review == null)
+        {
+            return;
+        }
+        if(game.Rating == null || game.reviewCount==0)
+        {
+            game.Rating = review;
+            game.reviewCount = 1;
+        }
+        else
+        {
+            game.Rating = (game.Rating * game.reviewCount + review)/(++game.reviewCount);
+        }
+
+        DB.Game.Update(game);
+        DB.SaveChanges();
+    }
+
+}
